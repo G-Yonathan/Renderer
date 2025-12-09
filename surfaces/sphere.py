@@ -1,14 +1,16 @@
-from shape import Shape
 import numpy as np
+from surfaces.surface import Surface
 
-class Sphere(Shape):
-    def __init__(self, center, radius):
-        self.center = center
+
+class Sphere(Surface):
+    def __init__(self, position, radius, material_index):
+        self.position = position
         self.radius = radius
+        self.material_index = material_index
 
     def find_itersection(self, ray, camera_pos):
 
-        L = self.center - camera_pos
+        L = self.position - camera_pos
         t_ca = np.dot(L, ray)
         if t_ca < 0:
             return None
@@ -22,3 +24,8 @@ class Sphere(Shape):
         t = t_ca - t_hc
 
         intersection = camera_pos + t * ray
+        return intersection
+
+    def normal(self, point):
+        v = point - self.position
+        return v / np.linalg.norm(v)

@@ -1,11 +1,11 @@
-from shape import Shape
+from surfaces.surface import Surface
 
 
-class Box(Shape):
-    def __init__(self, center, edge_length, mat_idx):
-        self.center = center
-        self.edge_length = edge_length
-        self.mat_idx = mat_idx
+class Cube(Surface):
+    def __init__(self, position, scale, material_index):
+        self.position = position
+        self.scale = scale
+        self.material_index = material_index
 
-    def find_itersection(ray):
+    def find_intersection(ray):
         return super().find_itersection()

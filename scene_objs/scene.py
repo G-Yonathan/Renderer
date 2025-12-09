@@ -1,6 +1,13 @@
 import numpy as np
+
 from scene_objs.camera import Camera
-from surfaces import *
+from scene_objs.light import Light
+from scene_objs.scene_settings import SceneSettings
+from scene_objs.material import Material
+
+from surfaces.infinite_plane import InfinitePlane
+from surfaces.sphere import Sphere
+from surfaces.cube import Cube
 
 
 class Scene:
