@@ -1,5 +1,5 @@
 from shape import Shape
-
+import numpy as np
 
 class Sphere(Shape):
     def __init__(self, center, radius):

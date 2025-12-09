@@ -1,6 +1,6 @@
 import numpy as np
-from camera import Camera
-from Shapes import *
+from scene_objs.camera import Camera
+from surfaces import *
 
 
 class Scene:
