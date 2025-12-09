@@ -8,8 +8,8 @@ class InfinitePlane(Surface):
         self.offset = offset
         self.material_index = material_index
 
-    def find_intersection(self, ray, camera_pos):
-        P_0 = camera_pos
+    def find_intersection(self, ray, source):
+        P_0 = source
         N = self.normal
         V = ray
 

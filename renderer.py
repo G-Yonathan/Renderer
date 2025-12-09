@@ -4,8 +4,21 @@ import numpy as np
 class Renderer:
 
     @staticmethod
-    def find_nearest_col_from_camera(scene, ray):
-        pass
+    def find_nearest_col(scene, ray, source):
+        nearest_surface = None
+        nearest_point = None
+        min_dist = np.inf
+
+        for surface in scene.get_surfaces():
+            point = surface.find_intersection(ray, source)
+            if point is not None:
+                dist = np.linalg.norm(point - source)
+                if dist < min_dist:
+                    min_dist = dist
+                    nearest_surface = surface
+                    nearest_point = point
+
+        return nearest_surface, nearest_point
 
     @staticmethod
     def compute_color(scene, obj, point):
@@ -14,7 +27,7 @@ class Renderer:
 
     @staticmethod
     def render(scene, image_width, image_height):
-        # Create image
+        image = np.zeros((image_width, image_height, 3))
 
         ray_gen = scene.camera.ray_generator
 

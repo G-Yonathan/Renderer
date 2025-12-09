@@ -11,14 +11,17 @@ from surfaces.cube import Cube
 
 
 class Scene:
-    def __init__(self, camera, scene_set, materials, planes, spheres, boxes, lights):
+    def __init__(self, camera, scene_set, materials, planes, spheres, cubes, lights):
         self.camera = camera
         self.scene_set = scene_set
         self.materials = materials
         self.planes = planes
         self.spheres = spheres
-        self.boxes = boxes
+        self.cubes = cubes
         self.lights = lights
+
+    def get_surfaces(self):
+        return self.planes + self.spheres + self.cubes
 
     @staticmethod
     def create_scene_from_txt_file(filename):
@@ -27,145 +30,76 @@ class Scene:
         materials = []
         planes = []
         spheres = []
-        boxes = []
+        cubes = []
         lights = []
 
-        with open(filename) as file:
+        with open(filename, "r") as file:
             for line in file:
-                line = line.rstrip()
-                if line and line[0] != "#":
-                    split_line = line.split(line)
-                    obj_code = split_line[0]
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
 
-                    if obj_code == "cam":
-                        camera = Camera(
-                            position=np.array(
-                                [
-                                    float(split_line[1]),
-                                    float(split_line[2]),
-                                    float(split_line[3]),
-                                ]
-                            ),
-                            look_at=np.array(
-                                [
-                                    float(split_line[4]),
-                                    float(split_line[5]),
-                                    float(split_line[6]),
-                                ]
-                            ),
-                            up=np.array(
-                                [
-                                    float(split_line[7]),
-                                    float(split_line[8]),
-                                    float(split_line[9]),
-                                ]
-                            ),
-                            sc_dist=float(split_line[10]),
-                            sc_width=float(split_line[11]),
-                        )
-                    elif obj_code == "set":
-                        scene_set = {
-                            "bg_color": np.array(
-                                [
-                                    float(split_line[1]),
-                                    float(split_line[2]),
-                                    float(split_line[3]),
-                                ]
-                            ),
-                            "sh_rays": int(split_line[4]),
-                            "max_rec": int(split_line[5]),
-                        }
-                    elif obj_code == "mtl":
-                        materials.append(
-                            {
-                                "diffuse_color": np.array(
-                                    [
-                                        float(split_line[1]),
-                                        float(split_line[2]),
-                                        float(split_line[3]),
-                                    ]
-                                ),
-                                "specular_color": np.array(
-                                    [
-                                        float(split_line[4]),
-                                        float(split_line[5]),
-                                        float(split_line[6]),
-                                    ]
-                                ),
-                                "reflect_color": np.array(
-                                    [
-                                        float(split_line[7]),
-                                        float(split_line[8]),
-                                        float(split_line[9]),
-                                    ]
-                                ),
-                                "phong": float(split_line[10]),
-                                "transparency": float(split_line[11]),
-                            }
-                        )
-                    elif obj_code == "pln":
-                        planes.append(
-                            Plane(
-                                normal=np.array(
-                                    [
-                                        float(split_line[1]),
-                                        float(split_line[2]),
-                                        float(split_line[3]),
-                                    ]
-                                ),
-                                offset=float(split_line[4]),
-                                material_idx=int(split_line[5]),
-                            )
-                        )
-                    elif obj_code == "sph":
-                        spheres.append(
-                            Sphere(
-                                center=np.array(
-                                    [
-                                        float(split_line[1]),
-                                        float(split_line[2]),
-                                        float(split_line[3]),
-                                    ]
-                                ),
-                                radius=float(split_line[4]),
-                                mat_idx=int(split_line[5]),
-                            )
-                        )
-                    elif obj_code == "box":
-                        boxes.append(
-                            Box(
-                                center=np.array(
-                                    [
-                                        float(split_line[1]),
-                                        float(split_line[2]),
-                                        float(split_line[3]),
-                                    ]
-                                ),
-                                edge_length=float(split_line[4]),
-                                mat_idx=int(split_line[5]),
-                            )
-                        )
-                    elif obj_code == "lgt":
-                        lights.append(
-                            {
-                                "position": np.array(
-                                    [
-                                        float(split_line[1]),
-                                        float(split_line[2]),
-                                        float(split_line[3]),
-                                    ]
-                                ),
-                                "color": np.array(
-                                    [
-                                        float(split_line[4]),
-                                        float(split_line[5]),
-                                        float(split_line[6]),
-                                    ]
-                                ),
-                                "spec": float(split_line[7]),
-                                "shadow": float(split_line[8]),
-                                "width": float(split_line[9]),
-                            }
-                        )
+                parts = line.split()
+                obj_type = parts[0]
+                params = [float(p) for p in parts[1:]]
 
-        return Scene(camera, scene_set, materials, planes, spheres, boxes, lights)
+                if obj_type == "cam":
+                    camera = Camera(
+                        position=np.array(params[0:3]),
+                        look_at=np.array(params[3:6]),
+                        up_vector=np.array(params[6:9]),
+                        screen_distance=params[9],
+                        screen_width=params[10],
+                    )
+                elif obj_type == "set":
+                    scene_set = SceneSettings(
+                        background_color=np.array(params[0:3]),
+                        root_number_shadow_rays=int(params[3]),
+                        max_recursions=int(params[4]),
+                    )
+                elif obj_type == "mtl":
+                    materials.append(
+                        Material(
+                            diffuse_color=np.array(params[0:3]),
+                            specular_color=np.array(params[3:6]),
+                            reflection_color=np.array(params[6:9]),
+                            shininess=params[9],
+                            transparency=params[10],
+                        )
+                    )
+                elif obj_type == "pln":
+                    planes.append(
+                        InfinitePlane(
+                            normal=np.array(params[0:3]),
+                            offset=params[3],
+                            material_idx=int(params[4]),
+                        )
+                    )
+                elif obj_type == "sph":
+                    spheres.append(
+                        Sphere(
+                            center=np.array(params[0:3]),
+                            radius=params[3],
+                            mat_idx=int(params[4]),
+                        )
+                    )
+                elif obj_type == "box":
+                    cubes.append(
+                        Cube(
+                            center=np.array(params[0:3]),
+                            edge_length=params[3],
+                            mat_idx=int(params[4]),
+                        )
+                    )
+                elif obj_type == "lgt":
+                    lights.append(
+                        Light(
+                            position=np.array(params[0:3]),
+                            color=np.array(params[3:6]),
+                            specular_intensity=params[6],
+                            shadow_intensity=params[7],
+                            radius=params[8],
+                        )
+                    )
+
+        return Scene(camera, scene_set, materials, planes, spheres, cubes, lights)

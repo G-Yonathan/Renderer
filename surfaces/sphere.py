@@ -8,9 +8,9 @@ class Sphere(Surface):
         self.radius = radius
         self.material_index = material_index
 
-    def find_intersection(self, ray, camera_pos):
+    def find_intersection(self, ray, source):
 
-        L = self.position - camera_pos
+        L = self.position - source
         t_ca = np.dot(L, ray)
         if t_ca < 0:
             return None
@@ -23,7 +23,7 @@ class Sphere(Surface):
 
         t = t_ca - t_hc
 
-        intersection = camera_pos + t * ray
+        intersection = source + t * ray
         return intersection
 
     def get_normal(self, point):
