@@ -6,8 +6,8 @@ class Camera:
         self.screen_distance = screen_distance
         self.screen_width = screen_width
 
-    def ray_generator():
-        for i in range(screen_width):
-            for j in range(screen_length):
+    def ray_generator(image_width, image_height):
+        for i in range():
+            for j in range():
                 # Calculate ray
                 yield ray

@@ -8,4 +8,5 @@ class Surface(ABC):
 
     @abstractmethod
     def get_normal(self, point):
+        # Assumes point is on surface
         pass
