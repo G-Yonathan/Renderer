@@ -1,3 +1,4 @@
+import numpy as np
 from surfaces.surface import Surface
 
 
@@ -7,7 +8,7 @@ class InfinitePlane(Surface):
         self.offset = offset
         self.material_index = material_index
 
-    def find_itersection(self, ray, camera_pos):
+    def find_intersection(self, ray, camera_pos):
         P_0 = camera_pos
         N = self.normal
         V = ray
@@ -16,5 +17,5 @@ class InfinitePlane(Surface):
 
         return P_0 + t * ray
 
-    def normal(self, point):
+    def get_normal(self, point):
         return self.normal

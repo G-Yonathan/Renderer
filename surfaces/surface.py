@@ -7,5 +7,5 @@ class Surface(ABC):
         pass
 
     @abstractmethod
-    def normal(self, point):
+    def get_normal(self, point):
         pass
