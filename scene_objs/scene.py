@@ -19,9 +19,11 @@ class Scene:
         self.spheres = spheres
         self.cubes = cubes
         self.lights = lights
+        self.surfaces = self.planes + self.spheres + self.cubes
+        
 
     def get_surfaces(self):
-        return self.planes + self.spheres + self.cubes
+        return self.surfaces
 
     @staticmethod
     def create_scene_from_txt_file(filename):
