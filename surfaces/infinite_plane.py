@@ -13,7 +13,7 @@ class InfinitePlane(Surface):
         N = self.normal
         V = ray
 
-        t = -(np.dot(P_0, N) + self.offset) / np.dot(V, N)
+        t = -(np.dot(P_0, N) + self.offset) / max(np.dot(V, N), 1e-4)
 
         return P_0 + t * ray
 
