@@ -2,6 +2,9 @@ import argparse
 from PIL import Image
 import numpy as np
 
+from scene_objs.scene import Scene
+from renderer import Renderer
+
 
 def save_image(image_array, name):
     image = Image.fromarray(np.uint8(image_array))
@@ -19,7 +22,7 @@ def main():
     # Parse the scene file
     scene = Scene.create_scene_from_txt_file(args.scene_file)
 
-    rendered_image_array = render(scene, args.width, args.height)
+    rendered_image_array = Renderer.render(scene, args.width, args.height)
 
     # Dummy result
     # image_array = np.zeros((500, 500, 3))

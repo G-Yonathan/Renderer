@@ -20,7 +20,6 @@ class Scene:
         self.cubes = cubes
         self.lights = lights
         self.surfaces = self.planes + self.spheres + self.cubes
-        
 
     def get_surfaces(self):
         return self.surfaces
@@ -74,23 +73,23 @@ class Scene:
                         InfinitePlane(
                             normal=np.array(params[0:3]),
                             offset=params[3],
-                            material_idx=int(params[4]),
+                            material_index=int(params[4]),
                         )
                     )
                 elif obj_type == "sph":
                     spheres.append(
                         Sphere(
-                            center=np.array(params[0:3]),
+                            position=np.array(params[0:3]),
                             radius=params[3],
-                            mat_idx=int(params[4]),
+                            material_index=int(params[4]),
                         )
                     )
                 elif obj_type == "box":
                     cubes.append(
                         Cube(
-                            center=np.array(params[0:3]),
-                            edge_length=params[3],
-                            mat_idx=int(params[4]),
+                            position=np.array(params[0:3]),
+                            scale=params[3],
+                            material_index=int(params[4]),
                         )
                     )
                 elif obj_type == "lgt":
