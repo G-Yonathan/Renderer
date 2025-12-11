@@ -9,7 +9,6 @@ class Sphere(Surface):
         self.material_index = material_index
 
     def find_intersection(self, ray, source):
-
         L = self.position - source
         t_ca = np.dot(L, ray)
         if t_ca < 0:
@@ -19,7 +18,7 @@ class Sphere(Surface):
         if d_squared > self.radius**2:
             return None
 
-        t_hc = np.sqrt(self.radius**2 - d_squared)
+        t_hc = np.sqrt(max(self.radius**2 - d_squared, 0))
 
         t = t_ca - t_hc
 
