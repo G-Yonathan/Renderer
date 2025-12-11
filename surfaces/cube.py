@@ -55,6 +55,6 @@ class Cube(Surface):
 
         return closest_point
 
-    def normal(self, point):
+    def get_normal(self, point):
         # Find the closest face to the point in terms of norm
         return self.directions[np.argmin(np.linalg.norm(self.faces - point, axis=1))]

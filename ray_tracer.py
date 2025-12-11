@@ -7,8 +7,9 @@ from renderer import Renderer
 
 
 def save_image(image_array, name):
-    image = Image.fromarray(np.uint8(image_array))
-    image.save(name)
+    image = Image.fromarray(np.uint8(image_array * 255))
+    # image.save(name)
+    image.show()
 
 
 def main():

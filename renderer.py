@@ -25,6 +25,9 @@ class Renderer:
 
         near_col_obj, near_col_point = Renderer.find_nearest_col(scene, ray, source)
 
+        if near_col_obj is None:
+            return scene.scene_set.background_color
+
         obj_material = scene.materials[near_col_obj.material_index - 1]
 
         # Direct light
@@ -45,21 +48,32 @@ class Renderer:
                 scene, light_vector, point_with_epsilon
             )
 
-            dist_to_light_col_obj = np.linalg.norm(
-                to_light_col_point - point_with_epsilon
-            )
+            if to_light_col_obj is None:
+                is_shadow = False
+            else:
+                dist_to_light_col_obj = np.linalg.norm(
+                    to_light_col_point - point_with_epsilon
+                )
 
-            is_shadow = (
-                to_light_col_obj is not None and dist_to_light_col_obj < dist_to_light
-            )
+                is_shadow = (
+                    to_light_col_obj is not None
+                    and dist_to_light_col_obj < dist_to_light
+                )
+
             intensity = 1.0 - light.shadow_intensity if is_shadow else 1.0
 
             # Diffuse
-            diffuse_total += obj_material.diffuse_color * light.color * intensity
+            diffuse_total += (
+                obj_material.diffuse_color
+                * max(0, np.dot(normal, light_vector))
+                * light.color
+                * intensity
+            )
 
             # Specular
-            reflection_vector = np.dot(2 * ray, normal) * normal - ray
-            alignment_with_reflection_vector = np.dot(reflection_vector, ray)
+            reflection_vector = 2 * np.dot(light_vector, normal) * normal - light_vector
+            reflection_vector /= np.linalg.norm(reflection_vector)
+            alignment_with_reflection_vector = np.dot(reflection_vector, -ray)
 
             if alignment_with_reflection_vector > 0:
                 phong_factor = alignment_with_reflection_vector**obj_material.shininess
@@ -71,7 +85,7 @@ class Renderer:
                     * intensity
                 )
 
-        direct_light_color = diffuse_total + specular_total
+        direct_light_color = diffuse_total + specular_total  # TODO: remove *0
 
         return np.clip(direct_light_color, 0, 1)
 
