@@ -49,7 +49,6 @@ class Camera:
 
         screen_height = (self.screen_width * image_height) / image_width
 
-        # TODO: should coefficient of Vx be 0.5 or -0.5 to get left side. Itay thinks -0.5
         screen_top_left = (
             screen_center + 0.5 * screen_height * v_y - 0.5 * self.screen_width * v_x
         )
