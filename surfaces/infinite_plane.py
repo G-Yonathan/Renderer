@@ -27,4 +27,4 @@ class InfinitePlane(Surface):
         return P_0 + t * ray
 
     def get_normal(self, point):
-        return self.normal
+        return self.normal / np.linalg.norm(self.normal)

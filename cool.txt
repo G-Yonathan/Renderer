@@ -1,0 +1,74 @@
+# Camera: 	px 	py 	pz 	lx 	ly 	lz 	ux 	uy 	uz 	sc_dist	sc_width
+# Positioned higher up and looking down at the center for a good overview
+cam 		0 	4 	-8 	0 	0 	0 	0 	1 	0 	1.0	1.0
+
+# Settings: 	bgr 	bgg 	bgb	sh_rays	rec_max
+# Dark purple/black background for contrast
+set 		0.05 	0.05 	0.1 	5 	6
+
+# Materials:
+# 1. Red Shiny Plastic
+mtl		0.8 	0.1 	0.1 	0.7 	0.7 	0.7 	0.2 	0.2 	0.2 	50 	0
+# 2. Blue Metallic
+mtl		0.1 	0.1 	0.9 	0.9 	0.9 	0.9 	0.5 	0.5 	0.5 	80 	0
+# 3. Pure Mirror
+mtl		0.0 	0.0 	0.0 	0.9 	0.9 	0.9 	1.0 	1.0 	1.0 	100 	0
+# 4. Glass (Transparent)
+mtl		0.0 	0.0 	0.0 	0.8 	0.8 	0.8 	0.1 	0.1 	0.1 	100 	0.9
+# 5. Gold
+mtl		0.8 	0.6 	0.1 	0.9 	0.9 	0.6 	0.4 	0.4 	0.1 	60 	0
+# 6. Reflective Floor (Grey)
+mtl		0.4 	0.4 	0.4 	0.3 	0.3 	0.3 	0.4 	0.4 	0.4 	20 	0
+# 7. Green Matte
+mtl		0.1 	0.8 	0.2 	0.2 	0.2 	0.2 	0.0 	0.0 	0.0 	10 	0
+
+# Plane:	nx	ny	nz	offset	mat_idx
+# A floor at y = -1
+pln		0 	1 	0 	-1 	6
+
+# Spheres:	cx 	cy 	cz 	radius 	mat_idx
+
+# Central Mirror Sphere
+sph		0 	0.5 	0 	1.5 	3
+
+# Ring of Glass Spheres (Inner)
+sph		2 	0 	2 	0.5 	4
+sph		-2 	0 	2 	0.5 	4
+sph		2 	0 	-2 	0.5 	4
+sph		-2 	0 	-2 	0.5 	4
+
+# Ring of Gold/Blue Spheres (Outer)
+sph		3 	0 	0 	0.5 	5
+sph		-3 	0 	0 	0.5 	5
+sph		0 	0 	3 	0.5 	2
+sph		0 	0 	-3 	0.5 	2
+
+# Floating Small Red Spheres
+sph		1.5 	2 	1.5 	0.3 	1
+sph		-1.5 	2 	1.5 	0.3 	1
+sph		1.5 	2 	-1.5 	0.3 	1
+sph		-1.5 	2 	-1.5 	0.3 	1
+
+# Background Structure (Wall of Spheres)
+sph		-4 	1 	5 	1 	7
+sph		-2 	1 	5 	1 	7
+sph		0 	1 	5 	1 	7
+sph		2 	1 	5 	1 	7
+sph		4 	1 	5 	1 	7
+
+# Cubes:	cx	cy	cz	scale	mat_idx
+# (Assuming your scene.py supports 'box' as seen in the code)
+box		-3.5	0.5	-3.5	0.8	1
+box		3.5	0.5	-3.5	0.8	2
+box		3.5	0.5	3.5	0.8	1
+box		-3.5	0.5	3.5	0.8	2
+
+# Lights:	px	py	pz	r	g	b	spec	shadow	width
+# Main Bright White Light from Top-Right
+lgt		5 	10 	-5 	0.8 	0.8 	0.8 	1.0 	1.0 	1.0
+
+# Warm Light from Left (Orange) to create color contrast
+lgt		-8 	5 	0 	0.8 	0.4 	0.1 	1.0 	0.8 	1.0
+
+# Cool Back Light (Blue/Purple) for rim lighting
+lgt		0 	5 	8 	0.2 	0.2 	0.8 	1.0 	0.8 	1.0

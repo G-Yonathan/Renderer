@@ -30,6 +30,7 @@ class Renderer:
         scene, ray, source, rec_depth, exclude=None, exclude_transparency=1
     ):
 
+        eps = 1e-5
         near_col_obj, near_col_point, nearest_index = Renderer.find_nearest_col(
             scene, ray, source, exclude=exclude
         )
@@ -46,7 +47,7 @@ class Renderer:
         normal = near_col_obj.get_normal(near_col_point)
 
         # TODO: choose appropriate epsilon
-        point_with_epsilon = near_col_point + (normal * 1e-3)
+        point_with_epsilon = near_col_point + (normal * eps)
 
         for light in scene.lights:
             light_vector = light.position - point_with_epsilon
@@ -85,7 +86,7 @@ class Renderer:
 
             # Specular
             reflection_vector = 2 * np.dot(light_vector, normal) * normal - light_vector
-            reflection_vector /= np.linalg.norm(reflection_vector)
+
             alignment_with_reflection_vector = np.dot(reflection_vector, -ray)
 
             if alignment_with_reflection_vector > 0:
@@ -108,11 +109,6 @@ class Renderer:
         transparent_color = 0
 
         if obj_material.transparency > 0:
-            # temp = scene.surfaces[nearest_index]
-            # # Heuristic for "removing" an object in O(1) replacing it with demo sphere
-            # # TODO: Faulty when integrating with multiproccess
-            # scene.surfaces[nearest_index] = Sphere(np.array([-100, -100, -100]), 0, 0)
-
             transparent_color = Renderer.compute_color(
                 scene,
                 ray,
@@ -121,24 +117,31 @@ class Renderer:
                 exclude=near_col_obj,
                 exclude_transparency=obj_material.transparency,
             )
-            # scene.surfaces[nearest_index] = temp
 
         reflection_color = 0
-        # if obj_material.reflection_color.any() > 0:
-        #     reflection_ray = 2 * np.dot(ray, normal) * normal - ray
 
-        #     reflection_color = (
-        #         Renderer.compute_color(
-        #             scene, reflection_ray, point_with_epsilon, rec_depth - 1
-        #         )
-        #         * obj_material.reflection_color
-        #     )
+        if obj_material.reflection_color.any() > 0:
+            reflection_ray = -(2 * np.dot(ray, normal) * normal - ray)
+
+            reflection_color = (
+                Renderer.compute_color(
+                    scene,
+                    reflection_ray,
+                    point_with_epsilon,
+                    rec_depth - 1,
+                    exclude=near_col_obj,
+                    exclude_transparency=obj_material.transparency,
+                )
+                * obj_material.reflection_color
+            )
 
         output_color = (
             obj_material.transparency * transparent_color
             + (1 - obj_material.transparency) * (direct_light_color)
             + (reflection_color)
         )
+        output_color = np.clip(output_color, 0, 1)
+
         return output_color
 
     @staticmethod
