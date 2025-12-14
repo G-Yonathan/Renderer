@@ -1,4 +1,5 @@
 import numpy as np
+from surfaces.sphere import Sphere
 
 
 class Renderer:
@@ -7,9 +8,10 @@ class Renderer:
     def find_nearest_col(scene, ray, source):
         nearest_surface = None
         nearest_point = None
+        nearest_index = None
         min_dist = np.inf
 
-        for surface in scene.surfaces:
+        for i, surface in enumerate(scene.surfaces):
             point = surface.find_intersection(ray, source)
             if point is not None:
                 dist = np.linalg.norm(point - source)
@@ -17,13 +19,16 @@ class Renderer:
                     min_dist = dist
                     nearest_surface = surface
                     nearest_point = point
+                    nearest_index = i
 
-        return nearest_surface, nearest_point
+        return nearest_surface, nearest_point, nearest_index
 
     @staticmethod
     def compute_color(scene, ray, source, rec_depth):
 
-        near_col_obj, near_col_point = Renderer.find_nearest_col(scene, ray, source)
+        near_col_obj, near_col_point, nearest_index = Renderer.find_nearest_col(
+            scene, ray, source
+        )
 
         if near_col_obj is None:
             return scene.scene_set.background_color
@@ -44,7 +49,7 @@ class Renderer:
             dist_to_light = np.linalg.norm(light_vector)
             light_vector /= dist_to_light
 
-            to_light_col_obj, to_light_col_point = Renderer.find_nearest_col(
+            to_light_col_obj, to_light_col_point, _ = Renderer.find_nearest_col(
                 scene, light_vector, point_with_epsilon
             )
 
@@ -85,44 +90,41 @@ class Renderer:
                     * intensity
                 )
 
-        direct_light_color = diffuse_total + specular_total  # TODO: remove *0
+        direct_light_color = diffuse_total + specular_total
 
-        return np.clip(direct_light_color, 0, 1)
+        direct_light_color = np.clip(direct_light_color, 0, 1)
 
-        # if rec_depth <= 0:
-        #     # TODO: surface.get_color() returns base color of object (or material version)
-        #     return near_col_obj.get_color()
+        if rec_depth <= 0:
+            return direct_light_color
 
-        # # TODO: Figure out light and shadow logic and plant here
-        # # TODO: calculate_transparent_ray (findnearcol bit w/out current object)
-        # # TODO: calculate_reflection_ray (using the slideshow)
-        # transparent_color = 0
-        # if near_col_obj.transparency > 0:
-        #     transparent_ray = Renderer.calculate_transparent_ray(
-        #         ray, near_col_obj, near_col_point
-        #     )
-        #     transparent_color = Renderer.compute_color(
-        #         scene, transparent_ray, near_col_point, rec_depth - 1
-        #     )
+        transparent_color = 0
+        if obj_material.transparency > 0:
+            temp = scene.surfaces[nearest_index]
+            # Heuristic for "removing" an object in O(1) replacing it with demo sphere
+            scene.surfaces[nearest_index] = Sphere(np.array([-100, -100, -100]), 0, 0)
 
-        # reflection_color = 0
-        # if near_col_obj.reflect > 0:
-        #     reflection_ray = Renderer.calculate_reflection_ray(
-        #         ray, near_col_obj, near_col_point
-        #     )
-        #     reflection_color = (
-        #         Renderer.compute_color(
-        #             scene, reflection_ray, near_col_point, rec_depth - 1
-        #         )
-        #         * obj_material.reflection
-        #     )
+            transparent_color = Renderer.compute_color(
+                scene, ray, near_col_point, rec_depth - 1
+            )
+            scene.surfaces[nearest_index] = temp
 
-        # # TODO: Not clear how to calculate diffuse and specular color
-        # output_color = (
-        #     obj_material.transparency * transparent_color
-        #     + (1 - obj_material.transparency) * (diffuse_color + specular_color)
-        #     + (reflection_color)
-        # )
+        reflection_color = 0
+        if obj_material.reflection_color.any() > 0:
+            reflection_ray = 2 * np.dot(ray, normal) * normal - ray
+
+            reflection_color = (
+                Renderer.compute_color(
+                    scene, reflection_ray, near_col_point, rec_depth - 1
+                )
+                * obj_material.reflection_color
+            )
+
+        output_color = (
+            obj_material.transparency * transparent_color
+            + (1 - obj_material.transparency) * (direct_light_color)
+            + (reflection_color)
+        )
+        return output_color
 
     @staticmethod
     def render(scene, image_width, image_height):
@@ -131,9 +133,7 @@ class Renderer:
         ray_gen = scene.camera.ray_generator(image_width, image_height)
 
         for ray, pix_x, pix_y in ray_gen:
-            # Yonatan, I know you might not agree to this approach
-            # But it's simpler than you think, it's just recursive logic and scalable too.
-            # Beseder shichnata
+
             color = Renderer.compute_color(
                 scene, ray, scene.camera.position, scene.scene_set.max_recursions
             )
