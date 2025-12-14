@@ -5,13 +5,15 @@ from surfaces.sphere import Sphere
 class Renderer:
 
     @staticmethod
-    def find_nearest_col(scene, ray, source):
+    def find_nearest_col(scene, ray, source, exclude=None):
         nearest_surface = None
         nearest_point = None
         nearest_index = None
         min_dist = np.inf
 
         for i, surface in enumerate(scene.surfaces):
+            if exclude != None and exclude == surface:
+                continue
             point = surface.find_intersection(ray, source)
             if point is not None:
                 dist = np.linalg.norm(point - source)
@@ -24,10 +26,12 @@ class Renderer:
         return nearest_surface, nearest_point, nearest_index
 
     @staticmethod
-    def compute_color(scene, ray, source, rec_depth):
+    def compute_color(
+        scene, ray, source, rec_depth, exclude=None, exclude_transparency=1
+    ):
 
         near_col_obj, near_col_point, nearest_index = Renderer.find_nearest_col(
-            scene, ray, source
+            scene, ray, source, exclude=exclude
         )
 
         if near_col_obj is None:
@@ -65,7 +69,11 @@ class Renderer:
                     and dist_to_light_col_obj < dist_to_light
                 )
 
-            intensity = 1.0 - light.shadow_intensity if is_shadow else 1.0
+            intensity = (
+                (1.0 - light.shadow_intensity * exclude_transparency)
+                if is_shadow
+                else 1.0
+            )
 
             # Diffuse
             diffuse_total += (
@@ -98,26 +106,33 @@ class Renderer:
             return direct_light_color
 
         transparent_color = 0
+
         if obj_material.transparency > 0:
-            temp = scene.surfaces[nearest_index]
-            # Heuristic for "removing" an object in O(1) replacing it with demo sphere
-            scene.surfaces[nearest_index] = Sphere(np.array([-100, -100, -100]), 0, 0)
+            # temp = scene.surfaces[nearest_index]
+            # # Heuristic for "removing" an object in O(1) replacing it with demo sphere
+            # # TODO: Faulty when integrating with multiproccess
+            # scene.surfaces[nearest_index] = Sphere(np.array([-100, -100, -100]), 0, 0)
 
             transparent_color = Renderer.compute_color(
-                scene, ray, near_col_point, rec_depth - 1
+                scene,
+                ray,
+                point_with_epsilon,
+                rec_depth - 1,
+                exclude=near_col_obj,
+                exclude_transparency=obj_material.transparency,
             )
-            scene.surfaces[nearest_index] = temp
+            # scene.surfaces[nearest_index] = temp
 
         reflection_color = 0
-        if obj_material.reflection_color.any() > 0:
-            reflection_ray = 2 * np.dot(ray, normal) * normal - ray
+        # if obj_material.reflection_color.any() > 0:
+        #     reflection_ray = 2 * np.dot(ray, normal) * normal - ray
 
-            reflection_color = (
-                Renderer.compute_color(
-                    scene, reflection_ray, near_col_point, rec_depth - 1
-                )
-                * obj_material.reflection_color
-            )
+        #     reflection_color = (
+        #         Renderer.compute_color(
+        #             scene, reflection_ray, point_with_epsilon, rec_depth - 1
+        #         )
+        #         * obj_material.reflection_color
+        #     )
 
         output_color = (
             obj_material.transparency * transparent_color
