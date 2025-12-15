@@ -60,7 +60,7 @@ class Camera:
         for i in range(image_height):
             p_1 = p_0.copy()
             for j in range(image_width):
-                print(i, j)
+                print(i)
                 ray = p_1 - self.position
                 ray /= np.linalg.norm(ray)
 

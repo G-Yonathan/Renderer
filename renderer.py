@@ -5,15 +5,12 @@ from surfaces.sphere import Sphere
 class Renderer:
 
     @staticmethod
-    def find_nearest_col(scene, ray, source, exclude=None):
+    def find_nearest_col(scene, ray, source):
         nearest_surface = None
         nearest_point = None
-        nearest_index = None
         min_dist = np.inf
 
         for i, surface in enumerate(scene.surfaces):
-            if exclude != None and exclude == surface:
-                continue
             point = surface.find_intersection(ray, source)
             if point is not None:
                 dist = np.linalg.norm(point - source)
@@ -22,19 +19,14 @@ class Renderer:
                     min_dist = dist
                     nearest_surface = surface
                     nearest_point = point
-                    nearest_index = i
 
-        return nearest_surface, nearest_point, nearest_index
+        return nearest_surface, nearest_point
 
     @staticmethod
-    def compute_color(
-        scene, ray, source, rec_depth, exclude=None, exclude_transparency=1
-    ):
-
-        eps = 1e-7
-        near_col_obj, near_col_point, nearest_index = Renderer.find_nearest_col(
-            scene, ray, source, exclude=exclude
-        )
+    def compute_color(scene, ray, source, rec_depth):
+        # TODO: choose appropriate epsilon
+        eps = 1e-4
+        near_col_obj, near_col_point = Renderer.find_nearest_col(scene, ray, source)
 
         if near_col_obj is None:
             return scene.scene_set.background_color
@@ -47,7 +39,6 @@ class Renderer:
 
         normal = near_col_obj.get_normal(near_col_point)
 
-        # TODO: choose appropriate epsilon
         point_with_epsilon = near_col_point + (normal * eps)
 
         for light in scene.lights:
@@ -55,13 +46,17 @@ class Renderer:
             dist_to_light = np.linalg.norm(light_vector)
             light_vector /= dist_to_light
 
-            to_light_col_obj, to_light_col_point, _ = Renderer.find_nearest_col(
-                scene, light_vector, point_with_epsilon, exclude=near_col_obj
+            to_light_col_obj, to_light_col_point = Renderer.find_nearest_col(
+                scene, light_vector, point_with_epsilon
             )
 
             if to_light_col_obj is None:
                 is_shadow = False
             else:
+                to_light_col_obj_material = scene.materials[
+                    to_light_col_obj.material_index - 1
+                ]
+
                 dist_to_light_col_obj = np.linalg.norm(
                     to_light_col_point - point_with_epsilon
                 )
@@ -72,10 +67,13 @@ class Renderer:
                 )
 
             intensity = (
-                (1.0 - light.shadow_intensity * exclude_transparency)
+                (
+                    (1.0 - light.shadow_intensity)
+                    * (1 - to_light_col_obj_material.transparency)
+                )
                 if is_shadow
                 else 1.0
-            )
+            )  # TODO: should we multiply shadow intensity or 1-shadow_intensity
 
             # Diffuse
             diffuse_total += (
@@ -107,31 +105,23 @@ class Renderer:
         if rec_depth <= 0:
             return direct_light_color
 
+        # Transparency
         transparent_color = 0
 
         if obj_material.transparency > 0:
             transparent_color = Renderer.compute_color(
-                scene,
-                ray,
-                point_with_epsilon,
-                rec_depth - 1,
-                exclude=near_col_obj,
-                exclude_transparency=obj_material.transparency,
+                scene, ray, near_col_point + (eps * ray), rec_depth - 1
             )
 
+        # Reflection
         reflection_color = 0
 
         if obj_material.reflection_color.any() > 0:
-            reflection_ray = -(2 * np.dot(ray, normal) * normal - ray)
+            reflection_ray = ray - 2 * np.dot(ray, normal) * normal
 
             reflection_color = (
                 Renderer.compute_color(
-                    scene,
-                    reflection_ray,
-                    point_with_epsilon,
-                    rec_depth - 1,
-                    exclude=near_col_obj,
-                    exclude_transparency=obj_material.transparency,
+                    scene, reflection_ray, point_with_epsilon, rec_depth - 1
                 )
                 * obj_material.reflection_color
             )
