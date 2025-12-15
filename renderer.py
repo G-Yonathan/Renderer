@@ -17,6 +17,7 @@ class Renderer:
             point = surface.find_intersection(ray, source)
             if point is not None:
                 dist = np.linalg.norm(point - source)
+
                 if dist < min_dist:
                     min_dist = dist
                     nearest_surface = surface
@@ -30,7 +31,7 @@ class Renderer:
         scene, ray, source, rec_depth, exclude=None, exclude_transparency=1
     ):
 
-        eps = 1e-5
+        eps = 1e-7
         near_col_obj, near_col_point, nearest_index = Renderer.find_nearest_col(
             scene, ray, source, exclude=exclude
         )
@@ -55,7 +56,7 @@ class Renderer:
             light_vector /= dist_to_light
 
             to_light_col_obj, to_light_col_point, _ = Renderer.find_nearest_col(
-                scene, light_vector, point_with_epsilon
+                scene, light_vector, point_with_epsilon, exclude=near_col_obj
             )
 
             if to_light_col_obj is None:
