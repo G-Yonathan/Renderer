@@ -1,4 +1,5 @@
 import numpy as np
+from surfaces.sphere import Sphere
 
 
 class Renderer:
@@ -7,12 +8,16 @@ class Renderer:
     def find_nearest_col(scene, ray, source):
         nearest_surface = None
         nearest_point = None
+        eps = 1e-5
         min_dist = np.inf
 
-        for surface in scene.surfaces:
+        for i, surface in enumerate(scene.surfaces):
             point = surface.find_intersection(ray, source)
             if point is not None:
                 dist = np.linalg.norm(point - source)
+                if dist < eps:
+                    continue
+
                 if dist < min_dist:
                     min_dist = dist
                     nearest_surface = surface
@@ -22,7 +27,8 @@ class Renderer:
 
     @staticmethod
     def compute_color(scene, ray, source, rec_depth):
-
+        # TODO: choose appropriate epsilon
+        eps = 1e-4
         near_col_obj, near_col_point = Renderer.find_nearest_col(scene, ray, source)
 
         if near_col_obj is None:
@@ -36,8 +42,7 @@ class Renderer:
 
         normal = near_col_obj.get_normal(near_col_point)
 
-        # TODO: choose appropriate epsilon
-        point_with_epsilon = near_col_point + (normal * 1e-3)
+        point_with_epsilon = near_col_point + (normal * eps)
 
         for light in scene.lights:
             light_vector = light.position - point_with_epsilon
@@ -51,6 +56,10 @@ class Renderer:
             if to_light_col_obj is None:
                 is_shadow = False
             else:
+                to_light_col_obj_material = scene.materials[
+                    to_light_col_obj.material_index - 1
+                ]
+
                 dist_to_light_col_obj = np.linalg.norm(
                     to_light_col_point - point_with_epsilon
                 )
@@ -60,7 +69,18 @@ class Renderer:
                     and dist_to_light_col_obj < dist_to_light
                 )
 
-            intensity = 1.0 - light.shadow_intensity if is_shadow else 1.0
+            intensity = (
+                (
+                    (
+                        1.0
+                        - light.shadow_intensity
+                        * (1 - to_light_col_obj_material.transparency)
+                    )
+                )
+                if is_shadow
+                else 1.0
+
+            )  # TODO: should we multiply shadow intensity or 1-shadow_intensity
 
             # Diffuse
             diffuse_total += (
@@ -72,7 +92,7 @@ class Renderer:
 
             # Specular
             reflection_vector = 2 * np.dot(light_vector, normal) * normal - light_vector
-            reflection_vector /= np.linalg.norm(reflection_vector)
+
             alignment_with_reflection_vector = np.dot(reflection_vector, -ray)
 
             if alignment_with_reflection_vector > 0:
@@ -85,44 +105,43 @@ class Renderer:
                     * intensity
                 )
 
-        direct_light_color = diffuse_total + specular_total  # TODO: remove *0
+        direct_light_color = diffuse_total + specular_total
 
-        return np.clip(direct_light_color, 0, 1)
+        direct_light_color = np.clip(direct_light_color, 0, 1)
 
-        # if rec_depth <= 0:
-        #     # TODO: surface.get_color() returns base color of object (or material version)
-        #     return near_col_obj.get_color()
+        if rec_depth <= 0:
+            return direct_light_color
 
-        # # TODO: Figure out light and shadow logic and plant here
-        # # TODO: calculate_transparent_ray (findnearcol bit w/out current object)
-        # # TODO: calculate_reflection_ray (using the slideshow)
-        # transparent_color = 0
-        # if near_col_obj.transparency > 0:
-        #     transparent_ray = Renderer.calculate_transparent_ray(
-        #         ray, near_col_obj, near_col_point
-        #     )
-        #     transparent_color = Renderer.compute_color(
-        #         scene, transparent_ray, near_col_point, rec_depth - 1
-        #     )
+        # Transparency
+        transparent_color = 0
 
-        # reflection_color = 0
-        # if near_col_obj.reflect > 0:
-        #     reflection_ray = Renderer.calculate_reflection_ray(
-        #         ray, near_col_obj, near_col_point
-        #     )
-        #     reflection_color = (
-        #         Renderer.compute_color(
-        #             scene, reflection_ray, near_col_point, rec_depth - 1
-        #         )
-        #         * obj_material.reflection
-        #     )
+        if obj_material.transparency > 0:
 
-        # # TODO: Not clear how to calculate diffuse and specular color
-        # output_color = (
-        #     obj_material.transparency * transparent_color
-        #     + (1 - obj_material.transparency) * (diffuse_color + specular_color)
-        #     + (reflection_color)
-        # )
+            transparent_color = Renderer.compute_color(
+                scene, ray, near_col_point, rec_depth - 1
+            )
+
+        # Reflection
+        reflection_color = 0
+
+        if obj_material.reflection_color.any() > 0:
+            reflection_ray = ray - 2 * np.dot(ray, normal) * normal
+
+            reflection_color = (
+                Renderer.compute_color(
+                    scene, reflection_ray, point_with_epsilon, rec_depth - 1
+                )
+                * obj_material.reflection_color
+            )
+
+        output_color = (
+            obj_material.transparency * transparent_color
+            + (1 - obj_material.transparency) * (direct_light_color)
+            + (reflection_color)
+        )
+        output_color = np.clip(output_color, 0, 1)
+
+        return output_color
 
     @staticmethod
     def render(scene, image_width, image_height):
@@ -131,9 +150,7 @@ class Renderer:
         ray_gen = scene.camera.ray_generator(image_width, image_height)
 
         for ray, pix_x, pix_y in ray_gen:
-            # Yonatan, I know you might not agree to this approach
-            # But it's simpler than you think, it's just recursive logic and scalable too.
-            # Beseder shichnata
+
             color = Renderer.compute_color(
                 scene, ray, scene.camera.position, scene.scene_set.max_recursions
             )

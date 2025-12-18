@@ -21,39 +21,42 @@ class Cube(Surface):
         )
 
         self.faces = position + (scale / 2) * self.directions
+        # Pre-calculate the min and max corners of the box (AABB)
+        # min_bound = bottom-left-back, max_bound = top-right-front
+        half_scale = self.scale / 2
+        self.min_bound = self.position - half_scale
+        self.max_bound = self.position + half_scale
 
-    def find_intersection(self, ray, source):  # TODO: change to slab method?
+    def find_intersection(self, ray_dir, source):
+        # 1. Calculate intersection t-values for all 3 axes at once.
+        #    We add a tiny epsilon (1e-9) to ray_dir to prevent DivisionByZero errors
+        #    if the ray is perfectly parallel to an axis.
+        inv_dir = 1.0 / (ray_dir + 1e-9)
 
-        def find_intersection_with_face(direction, face):
-            # Construct plane containing face
-            d = -np.dot(direction, face)
-            plane = InfinitePlane(direction, d, None)
-            point = plane.find_intersection(ray, source)
+        t1 = (self.min_bound - source) * inv_dir
+        t2 = (self.max_bound - source) * inv_dir
 
-            # Check if intersection with plane is within the face
-            for i in range(3):
-                if direction[i] == 0 and abs(face[i] - point[i]) > self.scale / 2:
-                    return None
-            return point
+        # 2. For each axis, t1 might be the entry or the exit depending on direction.
+        #    We force t_min to be the entry and t_max to be the exit.
+        t_min = np.minimum(t1, t2)
+        t_max = np.maximum(t1, t2)
 
-        # Consider only three closest faces
-        closest_indices = np.argsort(np.linalg.norm(self.faces - source, axis=1))[:3]
+        # 3. Find the actual intersection interval.
+        #    The ray enters the CUBE only after it has entered ALL three slabs.
+        #    The ray exits the CUBE as soon as it leaves ANY of the three slabs.
+        t_enter = np.max(t_min)
+        t_exit = np.min(t_max)
 
-        closest_point = None
-        min_dist_to_source = np.inf
+        # 4. Check if the hit is valid
+        #    t_exit >= t_enter: The intervals overlap (we hit the volume)
+        #    t_exit > 0: The cube is not fully behind us
+        if t_exit >= t_enter and t_exit > 0:
+            # If t_enter is negative, we are inside the cube -> hit is t_exit
+            # Otherwise, we are outside -> hit is t_enter
+            t_hit = t_enter if t_enter > 0 else t_exit
+            return source + (ray_dir * t_hit)
 
-        # Find closest intersection
-        for idx in closest_indices:
-            direction = self.directions[idx]
-            face = self.faces[idx]
-            point = find_intersection_with_face(direction, face)
-            if point is not None:
-                dist_to_source = np.linalg.norm(point - source)
-                if dist_to_source < min_dist_to_source:
-                    min_dist_to_source = dist_to_source
-                    closest_point = point
-
-        return closest_point
+        return None
 
     def get_normal(self, point):
         # Find the closest face to the point in terms of norm

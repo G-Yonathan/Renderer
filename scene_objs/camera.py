@@ -49,7 +49,6 @@ class Camera:
 
         screen_height = (self.screen_width * image_height) / image_width
 
-        # TODO: should coefficient of Vx be 0.5 or -0.5 to get left side. Itay thinks -0.5
         screen_top_left = (
             screen_center + 0.5 * screen_height * v_y - 0.5 * self.screen_width * v_x
         )
@@ -61,6 +60,7 @@ class Camera:
         for i in range(image_height):
             p_1 = p_0.copy()
             for j in range(image_width):
+                print(i)
                 ray = p_1 - self.position
                 ray /= np.linalg.norm(ray)
 
