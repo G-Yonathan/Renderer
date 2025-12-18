@@ -8,12 +8,15 @@ class Renderer:
     def find_nearest_col(scene, ray, source):
         nearest_surface = None
         nearest_point = None
+        eps = 1e-5
         min_dist = np.inf
 
         for i, surface in enumerate(scene.surfaces):
             point = surface.find_intersection(ray, source)
             if point is not None:
                 dist = np.linalg.norm(point - source)
+                if dist < eps:
+                    continue
 
                 if dist < min_dist:
                     min_dist = dist
@@ -68,11 +71,15 @@ class Renderer:
 
             intensity = (
                 (
-                    (1.0 - light.shadow_intensity)
-                    * (1 - to_light_col_obj_material.transparency)
+                    (
+                        1.0
+                        - light.shadow_intensity
+                        * (1 - to_light_col_obj_material.transparency)
+                    )
                 )
                 if is_shadow
                 else 1.0
+
             )  # TODO: should we multiply shadow intensity or 1-shadow_intensity
 
             # Diffuse
@@ -109,8 +116,9 @@ class Renderer:
         transparent_color = 0
 
         if obj_material.transparency > 0:
+
             transparent_color = Renderer.compute_color(
-                scene, ray, near_col_point + (eps * ray), rec_depth - 1
+                scene, ray, near_col_point, rec_depth - 1
             )
 
         # Reflection
