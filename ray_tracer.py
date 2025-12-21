@@ -8,8 +8,8 @@ from renderer import Renderer
 
 def save_image(image_array, name):
     image = Image.fromarray(np.uint8(image_array * 255))
-    # image.save(name)
-    image.show()
+    image.save(name)
+    # image.show()
 
 
 def main():
@@ -23,7 +23,8 @@ def main():
     # Parse the scene file
     scene = Scene.create_scene_from_txt_file(args.scene_file)
 
-    rendered_image_array = Renderer.render(scene, args.width, args.height)
+    renderer = Renderer(scene)
+    rendered_image_array = renderer.render(args.width, args.height)
 
     # Dummy result
     # image_array = np.zeros((500, 500, 3))
