@@ -39,7 +39,7 @@ class Camera:
         v_y = self.up_vector - np.dot(self.up_vector, n_plane) * n_plane
         if (
             np.linalg.norm(v_y) == 0
-        ):  # v_y is perpendicular to screen, choose arbitrary vy direction
+        ):  # up_vector is perpendicular to screen, choose arbitrary vy direction
             v_y = self.get_orthogonal_vector(n_plane)
         else:
             v_y /= np.linalg.norm(v_y)
@@ -60,11 +60,11 @@ class Camera:
         for i in range(image_height):
             p_1 = p_0.copy()
             for j in range(image_width):
-                # print(i)
+                print(i)
                 ray = p_1 - self.position
                 ray /= np.linalg.norm(ray)
 
-                p_1 += pixel_width * v_x
-
                 yield ray, i, j
+
+                p_1 += pixel_width * v_x
             p_0 -= pixel_width * v_y

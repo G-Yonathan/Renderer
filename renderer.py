@@ -12,6 +12,7 @@ class Renderer:
 
         self.max_recursions = scene.scene_set.max_recursions
         self.background_color = scene.scene_set.background_color
+        self.shadow_rays = scene.scene_set.root_number_shadow_rays
 
         self.lights = scene.lights
 
@@ -21,7 +22,7 @@ class Renderer:
         eps = 1e-4  # TODO: choose appropriate epsilon
         min_dist = np.inf
 
-        for i, surface in enumerate(self.surfaces):
+        for _, surface in enumerate(self.surfaces):
             point = surface.find_intersection(ray, source)
             if point is not None:
                 dist = np.linalg.norm(point - source)
@@ -35,46 +36,103 @@ class Renderer:
 
         return nearest_surface, nearest_point
 
+    def light_ray_generator(self, light, source):
+        n_plane = light.position - source
+        n_plane /= np.linalg.norm(n_plane)
+
+        v_y = self.scene.camera.get_orthogonal_vector(
+            n_plane
+        )  # TODO: move this function to some shared utils class, along with possible the generator thing
+        v_y /= np.linalg.norm(v_y)
+
+        v_x = np.cross(v_y, n_plane)
+        v_x /= np.linalg.norm(v_x)
+
+        N = self.shadow_rays
+
+        square_side_length = light.radius  # TODO: light.radius or light.radius * 2?
+
+        screen_top_left = (
+            light.position
+            + 0.5 * square_side_length * v_y
+            - 0.5 * square_side_length * v_x
+        )
+
+        pixel_width = square_side_length / N
+
+        p_0 = screen_top_left
+
+        for i in range(N):
+            p_1 = p_0.copy()
+            for j in range(N):
+                rx = np.random.rand()
+                ry = np.random.rand()
+
+                random_point_in_pixel = (
+                    p_1 + rx * pixel_width * v_x - ry * pixel_width * v_y
+                )
+
+                ray = random_point_in_pixel - source
+                ray /= np.linalg.norm(ray)
+
+                yield ray
+
+                p_1 += pixel_width * v_x
+            p_0 -= pixel_width * v_y
+
+    def compute_light_intensity(self, light, near_col_point):
+        light_ray_gen = self.light_ray_generator(light, near_col_point)
+
+        total_rays = 0
+        visibility_sum = 0
+
+        for ray in light_ray_gen:
+            total_rays += 1
+            visibility = 1.0
+
+            to_light_col_obj, to_light_col_point = self.find_nearest_col(
+                ray, near_col_point
+            )
+
+            if to_light_col_obj is not None:
+                dist_to_light_col_obj = np.linalg.norm(
+                    to_light_col_point - near_col_point
+                )
+                dist_to_light = np.linalg.norm(light.position - near_col_point)
+                if dist_to_light_col_obj < dist_to_light:
+                    to_light_col_obj_material = self.scene.materials[
+                        to_light_col_obj.material_index - 1
+                    ]
+                    visibility *= to_light_col_obj_material.transparency
+
+            visibility_sum += visibility
+
+        if total_rays == 0:
+            return 1.0
+
+        avg_visibility = visibility_sum / total_rays
+
+        # light_intensity = (
+        #     1.0 - light.shadow_intensity
+        # ) * avg_visibility  # TODO: this isn't the formula form the assignment description
+
+        light_intensity = (1.0 - light.shadow_intensity) + (
+            light.shadow_intensity * avg_visibility
+        )
+
+        # TODO: We don't handle transparency (the bonus transparency) properly because there could be an object behind the transparent object that isn't transparent, for example.
+
+        return light_intensity
+
     def compute_direct_light_color(self, normal, obj_material, near_col_point, ray):
         diffuse_total = np.zeros(3)
         specular_total = np.zeros(3)
 
         for light in self.lights:
+            intensity = self.compute_light_intensity(light, near_col_point)
+
             light_vector = light.position - near_col_point
-            dist_to_light = np.linalg.norm(light_vector)
-            light_vector /= dist_to_light
-
-            to_light_col_obj, to_light_col_point = self.find_nearest_col(
-                light_vector, near_col_point
-            )
-
-            if to_light_col_obj is None:
-                is_shadow = False
-            else:
-                to_light_col_obj_material = self.scene.materials[
-                    to_light_col_obj.material_index - 1
-                ]
-
-                dist_to_light_col_obj = np.linalg.norm(
-                    to_light_col_point - near_col_point
-                )
-
-                is_shadow = (
-                    to_light_col_obj is not None
-                    and dist_to_light_col_obj < dist_to_light
-                )
-
-            intensity = (
-                (
-                    (
-                        1.0
-                        - light.shadow_intensity
-                        * (1 - to_light_col_obj_material.transparency)
-                    )
-                )
-                if is_shadow
-                else 1.0
-            )
+            light_vector /= np.linalg.norm(light_vector)
 
             # Diffuse
             diffuse_total += (
