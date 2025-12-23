@@ -1,7 +1,7 @@
 import numpy as np
 
 
-class Renderer:
+class RayTracerEngine:
 
     def __init__(self, scene):
         self.scene = scene
@@ -36,57 +36,13 @@ class Renderer:
 
         return nearest_surface, nearest_point
 
-    def light_ray_generator(self, light, source):
-        n_plane = light.position - source
-        n_plane /= np.linalg.norm(n_plane)
-
-        v_y = self.scene.camera.get_orthogonal_vector(
-            n_plane
-        )  # TODO: move this function to some shared utils class, along with possible the generator thing
-        v_y /= np.linalg.norm(v_y)
-
-        v_x = np.cross(v_y, n_plane)
-        v_x /= np.linalg.norm(v_x)
-
-        N = self.shadow_rays
-
-        square_side_length = light.radius  # TODO: light.radius or light.radius * 2?
-
-        screen_top_left = (
-            light.position
-            + 0.5 * square_side_length * v_y
-            - 0.5 * square_side_length * v_x
-        )
-
-        pixel_width = square_side_length / N
-
-        p_0 = screen_top_left
-
-        for i in range(N):
-            p_1 = p_0.copy()
-            for j in range(N):
-                rx = np.random.rand()
-                ry = np.random.rand()
-
-                random_point_in_pixel = (
-                    p_1 + rx * pixel_width * v_x - ry * pixel_width * v_y
-                )
-
-                ray = random_point_in_pixel - source
-                ray /= np.linalg.norm(ray)
-
-                yield ray
-
-                p_1 += pixel_width * v_x
-            p_0 -= pixel_width * v_y
-
     def compute_light_intensity(self, light, near_col_point):
-        light_ray_gen = self.light_ray_generator(light, near_col_point)
+        light_ray_gen = light.ray_generator(near_col_point, self.shadow_rays)
 
         total_rays = 0
         visibility_sum = 0
 
-        for ray in light_ray_gen:
+        for ray, _, _ in light_ray_gen:
             total_rays += 1
             visibility = 1.0
 
@@ -111,10 +67,6 @@ class Renderer:
             return 1.0
 
         avg_visibility = visibility_sum / total_rays
-
-        # light_intensity = (
-        #     1.0 - light.shadow_intensity
-        # ) * avg_visibility  # TODO: this isn't the formula form the assignment description
 
         light_intensity = (1.0 - light.shadow_intensity) + (
             light.shadow_intensity * avg_visibility
@@ -212,6 +164,7 @@ class Renderer:
         ray_gen = self.scene.camera.ray_generator(image_width, image_height)
 
         for ray, pix_x, pix_y in ray_gen:
+            print(pix_x)
             color = self.compute_color(ray, self.camera_position, self.max_recursions)
 
             image[pix_x][pix_y] = color
