@@ -3,13 +3,13 @@ from PIL import Image
 import numpy as np
 
 from scene_objs.scene import Scene
-from renderer import Renderer
+from ray_tracer_engine import RayTracerEngine
 
 
 def save_image(image_array, name):
     image = Image.fromarray(np.uint8(image_array * 255))
     # image.save(name)
-    image.show()
+    image.show()  # TODO: delete this
 
 
 def main():
@@ -23,10 +23,8 @@ def main():
     # Parse the scene file
     scene = Scene.create_scene_from_txt_file(args.scene_file)
 
-    rendered_image_array = Renderer.render(scene, args.width, args.height)
-
-    # Dummy result
-    # image_array = np.zeros((500, 500, 3))
+    rte = RayTracerEngine(scene)
+    rendered_image_array = rte.render(args.width, args.height)
 
     # Save the output image
     save_image(rendered_image_array, args.output_image)
