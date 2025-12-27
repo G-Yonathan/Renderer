@@ -16,6 +16,26 @@ class RayTracerEngine:
 
         self.lights = scene.lights
 
+    def find_all_col(self, ray, source, max_dis=None):
+        collision_group = []
+        eps = 1e-4  # TODO: choose appropriate epsilon
+
+        for _, surface in enumerate(self.surfaces):
+            point = surface.find_intersection(ray, source)
+
+            if point is not None:
+                dist = np.linalg.norm(point - source)
+
+                if dist < eps:
+                    continue
+
+                if max_dis is not None and dist > max_dis:
+                    continue
+
+                collision_group.append(surface)
+
+        return collision_group
+
     def find_nearest_col(self, ray, source):
         nearest_surface = None
         nearest_point = None
@@ -46,20 +66,12 @@ class RayTracerEngine:
             total_rays += 1
             visibility = 1.0
 
-            to_light_col_obj, to_light_col_point = self.find_nearest_col(
-                ray, near_col_point
-            )
+            dist_to_light = np.linalg.norm(light.position - near_col_point)
+            surfaces = self.find_all_col(ray, near_col_point, dist_to_light)
 
-            if to_light_col_obj is not None:
-                dist_to_light_col_obj = np.linalg.norm(
-                    to_light_col_point - near_col_point
-                )
-                dist_to_light = np.linalg.norm(light.position - near_col_point)
-                if dist_to_light_col_obj < dist_to_light:
-                    to_light_col_obj_material = self.scene.materials[
-                        to_light_col_obj.material_index - 1
-                    ]
-                    visibility *= to_light_col_obj_material.transparency
+            for surface in surfaces:
+                surface_material = self.scene.materials[surface.material_index - 1]
+                visibility *= surface_material.transparency
 
             visibility_sum += visibility
 
