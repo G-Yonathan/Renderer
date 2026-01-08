@@ -5,7 +5,7 @@ class RayTracerUtils:
     @staticmethod
     def get_orthogonal_vector(v):
         if np.allclose(v, 0):
-            raise ValueError("Zero vector has no defined orthogonal vector.")
+            return np.array([1, 0, 0])  # No orthogonal vector, return arbitrary vector
 
         if abs(v[0]) < abs(v[1]):
             if abs(v[0]) < abs(v[2]):

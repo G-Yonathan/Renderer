@@ -4,9 +4,9 @@ from surfaces.surface import Surface
 
 class InfinitePlane(Surface):
     def __init__(self, normal, offset, material_index):
+        super().__init__(material_index)
         self.normal = normal / np.linalg.norm(normal)
         self.offset = -offset
-        self.material_index = material_index
 
     def find_intersection(self, ray, source):
         P_0 = source
