@@ -8,8 +8,7 @@ from ray_tracer_engine import RayTracerEngine
 
 def save_image(image_array, name):
     image = Image.fromarray(np.uint8(image_array * 255))
-    # image.save(name)
-    image.show()  # TODO: delete this
+    image.save(name)
 
 
 def main():
