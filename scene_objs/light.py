@@ -14,7 +14,7 @@ class Light:
             source,
             shadow_rays,
             shadow_rays,
-            self.radius,  # TODO: light.radius or light.radius * 2?
+            self.radius,
             self.position,
             randomize=True,
         )

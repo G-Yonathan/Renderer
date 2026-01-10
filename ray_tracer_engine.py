@@ -16,20 +16,22 @@ class RayTracerEngine:
 
         self.lights = scene.lights
 
-    def find_all_col(self, ray, source, max_dis=None):
+        self.col_eps = 1e-5
+
+    def find_all_col(self, ray, source, max_dis_sq=None):
+        # OPTIMIZATION: compare squared distances to avoid square rooting.
         collision_group = []
-        eps = 1e-4  # TODO: choose appropriate epsilon
 
         for _, surface in enumerate(self.surfaces):
             point = surface.find_intersection(ray, source)
 
             if point is not None:
-                dist = np.linalg.norm(point - source)
+                dist_sq = np.dot(point - source, point - source)
 
-                if dist < eps:
+                if dist_sq < self.col_eps:
                     continue
 
-                if max_dis is not None and dist > max_dis:
+                if max_dis_sq is not None and dist_sq > max_dis_sq:
                     continue
 
                 collision_group.append(surface)
@@ -39,18 +41,18 @@ class RayTracerEngine:
     def find_nearest_col(self, ray, source):
         nearest_surface = None
         nearest_point = None
-        eps = 1e-4  # TODO: choose appropriate epsilon
-        min_dist = np.inf
+        min_dist_sq = np.inf
+        # OPTIMIZATION: compare squared distances to avoid square rooting.
 
         for _, surface in enumerate(self.surfaces):
             point = surface.find_intersection(ray, source)
             if point is not None:
-                dist = np.linalg.norm(point - source)
-                if dist < eps:
+                dist_sq = np.dot(point - source, point - source)
+                if dist_sq < self.col_eps:
                     continue
 
-                if dist < min_dist:
-                    min_dist = dist
+                if dist_sq < min_dist_sq:
+                    min_dist_sq = dist_sq
                     nearest_surface = surface
                     nearest_point = point
 
@@ -66,12 +68,20 @@ class RayTracerEngine:
             total_rays += 1
             visibility = 1.0
 
-            dist_to_light = np.linalg.norm(light.position - near_col_point)
-            surfaces = self.find_all_col(ray, near_col_point, dist_to_light)
+            diff_col_light = light.position - near_col_point
+            dist_to_light_sq = np.dot(diff_col_light, diff_col_light)
+
+            # BONUS 7.1
+            surfaces = self.find_all_col(ray, near_col_point, dist_to_light_sq)
 
             for surface in surfaces:
                 surface_material = self.scene.materials[surface.material_index - 1]
                 visibility *= surface_material.transparency
+
+                # OPTIMIZATION: if shadow is too strong, stop iterating over objects.
+                if visibility < 0.05:
+                    visibility = 0
+                    break
 
             visibility_sum += visibility
 
@@ -83,8 +93,6 @@ class RayTracerEngine:
         light_intensity = (1.0 - light.shadow_intensity) + (
             light.shadow_intensity * avg_visibility
         )
-
-        # TODO: We don't handle transparency (the bonus transparency) properly because there could be an object behind the transparent object that isn't transparent, for example.
 
         return light_intensity
 
@@ -176,9 +184,9 @@ class RayTracerEngine:
         ray_gen = self.scene.camera.ray_generator(image_width, image_height)
 
         for ray, pix_x, pix_y in ray_gen:
-            print(pix_x)
             color = self.compute_color(ray, self.camera_position, self.max_recursions)
-
+            if pix_x % 20 == 0 and pix_y == 0:
+                print(pix_x, pix_y)
             image[pix_x][pix_y] = color
 
         return image
