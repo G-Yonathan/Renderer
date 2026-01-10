@@ -185,8 +185,6 @@ class RayTracerEngine:
 
         for ray, pix_x, pix_y in ray_gen:
             color = self.compute_color(ray, self.camera_position, self.max_recursions)
-            if pix_x % 20 == 0 and pix_y == 0:
-                print(pix_x, pix_y)
             image[pix_x][pix_y] = color
 
         return image
