@@ -95,6 +95,6 @@ python raytracer.py scene.txt output.png --width 500 --height 500
 
 ## Examples
 
-[](examples\pool.png)
+[](examples/pool.png)
 
-[](examples\h2o.png)
+[](examples/h2o.png)
