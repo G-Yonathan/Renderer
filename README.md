@@ -14,13 +14,9 @@ The renderer supports intersection and shading for:
 - **Infinite planes**
 - **Axis-aligned cubes**
 
----
-
 ### Materials
 
 Each surface is associated with a material defined by diffuse color, specular color, phong coefficient, reflection color, and transparency.
-
----
 
 ### Lighting
 
@@ -30,13 +26,9 @@ Each light is defined by position color, specular intensity, shadow intensity, a
 
 Soft shadows are computed using stochastic sampling over an **N × N** grid.
 
----
-
 ### Camera
 
 The camera is defined by position, look-at point, up vector, screen distance, and screen width.
-
----
 
 ## Scene File Format
 
@@ -85,8 +77,6 @@ box cx cy cz  scale  material_index
 ```
 lgt px py pz  r g b  spec_intensity  shadow_intensity  radius
 ```
-
----
 
 ## Usage
 
