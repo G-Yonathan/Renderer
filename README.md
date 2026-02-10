@@ -92,3 +92,9 @@ python raytracer.py scene.txt output.png --width 500 --height 500
 | output file | Output image (.png)        |
 | --width     | Image width (default 500)  |
 | --height    | Image height (default 500) |
+
+## Examples
+
+[](examples\pool.png)
+
+[](examples\h2o.png)
