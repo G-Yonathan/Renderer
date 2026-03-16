@@ -1,6 +1,6 @@
 # Scene Renderer using Ray Tracing
 
-Recursive ray tracer written in Python, implementing phong illumination, reflections, transparency, soft shadows, and proper shadown for transparent objects.
+Recursive ray tracer written in Python, implementing phong illumination, reflections, transparency, soft shadows, and proper shadow for transparent objects.
 
 ---
 
